@@ -13,7 +13,7 @@ async def websocket_endpoint(ws: WebSocket):
     token = ws.cookies.get("access_token")
 
     if not token:
-        await ws.close()
+        await ws.close(code=1008)
         return
 
     try:
@@ -21,7 +21,7 @@ async def websocket_endpoint(ws: WebSocket):
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         user = payload.get("sub")
-
+        print(ws.cookies)
     except JWTError:
         await ws.close()
         return

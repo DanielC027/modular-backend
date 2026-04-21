@@ -40,6 +40,7 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(get
         value=token,
         httponly=True,
         samesite="lax",
+        secure=False,
         # secure=True en producción
     )
 
