@@ -1,18 +1,12 @@
-from fastapi import FastAPI, WebSocket
-from typing import List
+from fastapi import FastAPI
+from db.database import Base, engine
+
+from routes import auth, users, ws
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-clients: List[WebSocket] = []
 
-
-@app.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket):
-    await ws.accept()
-    clients.append(ws)
-    try:
-        while True:
-            data = await ws.receive_text()
-            for client in clients:
-                await client.send_text(data)
-    except:
-        clients.remove(ws)
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(ws.router)
