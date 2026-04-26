@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Cookie
+from fastapi import APIRouter, Depends, HTTPException, Cookie, Query, Request
+from typing import Annotated
 from sqlalchemy.orm import Session
 from deps import get_db
 from db import schemas
@@ -25,13 +26,20 @@ def guardar_analisis(
 
 @router.get("/obtener_analisis")
 def obtener_analisis(
-    fecha: str,
+    request: Request,
+    fecha: Annotated[
+        str,
+        Query(
+            max_length=10,
+            pattern=r"^\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|02-(?:0[1-9]|1\d|2[0-8]))$",
+        ),
+    ],
     periodo: str,
     db: Session = Depends(get_db),
-    access_token: str = Cookie(default=None),
 ):
     try:
-
+        access_token = request.cookies.get("access_token")
+        # print("datos solicitados, access_token: ", access_token)
         if not access_token:
             raise HTTPException(status_code=401, detail="acceso no autorizado")
 
@@ -40,13 +48,35 @@ def obtener_analisis(
         periodos_validos = {
             "Y": "%Y",
             "M": "%Y-%m",
-            "S": "%Y-%W",
+            "W": "%Y-%W",
         }
 
         if periodo in periodos_validos:
-            return obtener_promedio_db(db, fecha, huella, periodos_validos[periodo])
+            # print("Periodo: ", periodo)
+            result = obtener_promedio_db(db, fecha, huella, periodos_validos[periodo])
+            # print(result)
+            etiquetas = [etiqueta[1] for etiqueta in result]
+            probabilidades = [etiqueta[2] for etiqueta in result]
+            msj = {
+                "fecha": fecha,
+                "tipo": "analisis_emociones",
+                "valores": {"etiquetas": etiquetas, "probabilidades": probabilidades},
+            }
+            return msj
+            # return [row._asdict() for row in result]
         elif periodo == "D":
-            return obtener_emociones_dia_db(db, fecha, huella)
+            # print("Periodo: dia")
+            result = obtener_emociones_dia_db(db, fecha, huella)
+            # print(result)
+            etiquetas = [etiqueta[0] for etiqueta in result]
+            probabilidades = [etiqueta[1] for etiqueta in result]
+            msj = {
+                "fecha": fecha,
+                "tipo": "analisis_emociones",
+                "valores": {"etiquetas": etiquetas, "probabilidades": probabilidades},
+            }
+            return msj
+            # return [row._asdict() for row in result]
         else:
             raise HTTPException(status_code=400, detail="parametro no valido")
 

@@ -65,35 +65,44 @@ def guardar_analisis(db: Session, data):
 
 
 def obtener_promedio(db, fecha, huella, formato):
-    return (
-        db.query(
-            models.ListaEmociones.id_emocion,
-            models.Emocion.nombre,
-            func.avg(models.ListaEmociones.porcentaje_emocion),
-            func.count(),
+    try:
+        return (
+            db.query(
+                models.ListaEmociones.id_emocion,
+                models.Emocion.nombre,
+                func.avg(models.ListaEmociones.porcentaje_emocion).label("promedio"),
+                func.count().label("total"),
+            )
+            .join(models.Analisis)
+            .join(models.Escrito)
+            .join(models.Emocion)
+            .filter(
+                func.strftime(formato, models.Escrito.fecha)
+                == func.strftime(formato, fecha),
+            )
+            .group_by(models.ListaEmociones.id_emocion, models.Emocion.nombre)
+            .all()
         )
-        .join(models.Analisis)
-        .join(models.Escrito)
-        .join(models.Emocion)
-        .filter(
-            models.Escrito.huella_digital == huella,
-            func.strftime(formato, models.Escrito.fecha)
-            == func.strftime(formato, fecha),
-        )
-        .group_by(models.ListaEmociones.id_emocion, models.Emocion.nombre)
-        .all()
-    )
+        """ .filter(
+                models.Escrito.huella_digital == huella,
+                func.strftime(formato, models.Escrito.fecha)
+                == func.strftime(formato, fecha),
+            ) """
+    except Exception as ex:
+        print("Error al obtener datos promedio analisis bd: ", ex)
 
 
 def obtener_promedio_emociones_dia(db: Session, fecha, huella):
-
-    resultados = (
-        db.query(models.Emocion.nombre, models.ListaEmociones.porcentaje_emocion)
-        .join(models.Analisis)
-        .join(models.Escrito)
-        .join(models.Emocion)
-        .filter(models.Escrito.fecha == fecha, models.Escrito.huella_digital == huella)
-        .all()
-    )
-
-    return resultados
+    try:
+        resultados = (
+            db.query(models.Emocion.nombre, models.ListaEmociones.porcentaje_emocion)
+            .join(models.Analisis)
+            .join(models.Escrito)
+            .join(models.Emocion)
+            .filter(models.Escrito.fecha == fecha)
+            .all()
+        )
+        # .filter(models.Escrito.fecha == fecha, models.Escrito.huella_digital == huella)
+        return resultados
+    except Exception as ex:
+        print("Error al obtener datos promedio dia analisis bd: ", ex)
