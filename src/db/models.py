@@ -25,7 +25,7 @@ class Escrito(Base):
 
     id_escrito = Column(Integer, primary_key=True, index=True)
     fecha = Column(String, nullable=False)
-    huella_digital = Column(LargeBinary, nullable=False)
+    huella_digital = Column(String, nullable=False)
     # Relacion con analisis
     analisis = relationship("Analisis", back_populates="escrito", cascade="all, delete")
 
